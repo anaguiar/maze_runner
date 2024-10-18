@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
+#include <thread>
+#include <vector>
 
 using namespace std;
 
@@ -15,8 +17,8 @@ int num_cols;
 // Pos a ser explorada
 struct pos_t
 {
-	int i;
-	int j;
+    int i;
+    int j;
 };
 
 pos_t initial_pos;
@@ -24,33 +26,19 @@ pos_t initial_pos;
 // a serem exploradas no labirinto
 stack<pos_t> valid_positions;
 
-/* Inserir elemento: 
-
-	 pos_t pos;
-	 pos.i = 1;
-	 pos.j = 3;
-	 valid_positions.push(pos)
- */
-// Retornar o numero de elementos: valid_positions.size();
-//Retornar o primeiro elemento do vetor: valid_positions.top();
-// Remover o elemento no topo: valid_positions.pop(); 
-
-
 pos_t load_maze(const char* file_name)
 {
-	
-	// Abre o arquivo para leitura (fopen)
-	 ifstream file;
+    // Abre o arquivo para leitura (fopen)
+    ifstream file;
     file.open(file_name);
     if (!file) {
         cout << "Error: File could not be opened.\n";
         exit(1);
     }
-	// Le o numero de linhas e colunas (fscanf) 
-	// e salva em num_rows e num_cols
 
-	cout<< "aquii";
-	file >> num_rows >> num_cols;
+    // Le o numero de linhas e colunas (fscanf) 
+    // e salva em num_rows e num_cols
+    file >> num_rows >> num_cols;
     cout << "Labirinto " << num_rows << "x" << num_cols << ":\n";
 
     // Aloca a matriz maze (malloc)
@@ -59,135 +47,120 @@ pos_t load_maze(const char* file_name)
         maze[i] = new char[num_cols];
     }
 
-
-
-	for (int i = 0; i < num_rows; ++i)
-	{
-		for (int j = 0; j < num_cols; ++j)
-		{
-			// Le o valor da linha i+1,j do arquivo e salva na posiÃ§Ã£o maze[i][j]
-			// Se o valor for 'e' salvar o valor em initial_pos
-			 file >> maze[i][j];
+    for (int i = 0; i < num_rows; ++i)
+    {
+        for (int j = 0; j < num_cols; ++j)
+        {
+            // Le o valor da linha i+1,j do arquivo e salva na posição maze[i][j]
+            // Se o valor for 'e' salvar o valor em initial_pos
+            file >> maze[i][j];
             if (maze[i][j] == 'e') {
                 initial_pos.i = i;
                 initial_pos.j = j;
-				cout << "i " << i << " j "<< j <<'\n';
             }
-		}
-	}
-	file.close();
-	
-	return initial_pos;
+        }
+    }
+    file.close();
+
+    return initial_pos;
 }
 
 void print_maze()
 {
-	for (int i = 0; i < num_rows; ++i)
-	{
-		for (int j = 0; j < num_cols; ++j)
-		{
-			printf("%c", maze[i][j]);
-		}
-		printf("\n");
-	}
+    for (int i = 0; i < num_rows; ++i)
+    {
+        for (int j = 0; j < num_cols; ++j)
+        {
+            printf("%c", maze[i][j]);
+        }
+        printf("\n");
+    }
 }
 
-int walk(pos_t pos)
+void clear_console()
 {
-	//marcando que se encontra na posição inicial
-	maze[pos.i][pos.j] = 'o';
-	// Marcar a posição atual com o sÃ­mbolo 'o'
+    // Limpar o console para atualizar o estado do labirinto
+    #ifdef _WIN32
+        system("cls");
+    #else
+        system("clear");
+    #endif
+}
 
-	/* Dado a posição atual, verifica quais sao as próximas posições válidas
-		Checar se as posições abaixo são validas (i>0, i<num_rows, j>0, j <num_cols)
-		 e se são posições ainda não visitadas (ou seja, caracter 'x') e inserir
-		 cada uma delas no vetor valid_positions
-		 - pos.i, pos.j+1
-		 - pos.i, pos.j-1
-		 - pos.i+1, pos.j
-		 - pos.i-1, pos.j
-	*/
-	pos_t aux;
-	bool auxIf = false;
-	
-	if(pos.j+1 < num_cols){
-		if((maze[pos.i][pos.j+1] == 'x' || maze[pos.i][pos.j+1] == 's') && !auxIf){
-			aux.i= pos.i;
-			aux.j= pos.j+1;
-			valid_positions.push(aux);
-			auxIf = true;
-		}
-	}
+void walk(pos_t pos)
+{
+    // Marcar a posição atual com o símbolo 'o'
+    maze[pos.i][pos.j] = 'o';
 
-	if(pos.i+1 < num_rows){
-		if((maze[pos.i+1][pos.j] == 'x'  || maze[pos.i+1][pos.j] == 's') && !auxIf){
-			aux.i= pos.i+1;
-			aux.j= pos.j;
-			valid_positions.push(aux);
-			auxIf = true;
-		} 
-	}
+    // Limpar o console e imprimir o estado atual do labirinto
+    clear_console();
+    print_maze();
+    this_thread::sleep_for(chrono::milliseconds(200)); // Pausa para visualizar a exploração
 
-	if(pos.i-1 >= 0){
-		if((maze[pos.i-1][pos.j] == 'x'  || maze[pos.i-1][pos.j] == 's') && !auxIf){
-			aux.i= pos.i-1;
-			aux.j= pos.j;
-			valid_positions.push(aux);
-			auxIf = true;
-		}
-	}
+    pos_t aux;
+    vector<pos_t> new_positions;
 
-
-	if(pos.j-1 >= 0){
-		if((maze[pos.i][pos.j-1] == 'x' || maze[pos.i][pos.j-1] == 's')  && !auxIf){
-			aux.i= pos.i;
-			aux.j= pos.j-1;
-			valid_positions.push(aux);
-			auxIf = true;
-		}
-	}	
-
-	system("cls");
-	// Imprime o labirinto
-	print_maze();
-	// Verifica se o vetor nao esta vazio. 
-	//cout << "error"<< valid_positions.size();
-	if (valid_positions.empty()) {
-        cout << "Não existem novas opções não visitadas \n";
-        return 0;
+    // Verificar e adicionar as posições válidas adjacentes
+    if (pos.j + 1 < num_cols && (maze[pos.i][pos.j + 1] == 'x' || maze[pos.i][pos.j + 1] == 's')) {
+        aux.i = pos.i;
+        aux.j = pos.j + 1;
+        new_positions.push_back(aux);
+    }
+    if (pos.i + 1 < num_rows && (maze[pos.i + 1][pos.j] == 'x' || maze[pos.i + 1][pos.j] == 's')) {
+        aux.i = pos.i + 1;
+        aux.j = pos.j;
+        new_positions.push_back(aux);
+    }
+    if (pos.i - 1 >= 0 && (maze[pos.i - 1][pos.j] == 'x' || maze[pos.i - 1][pos.j] == 's')) {
+        aux.i = pos.i - 1;
+        aux.j = pos.j;
+        new_positions.push_back(aux);
+    }
+    if (pos.j - 1 >= 0 && (maze[pos.i][pos.j - 1] == 'x' || maze[pos.i][pos.j - 1] == 's')) {
+        aux.i = pos.i;
+        aux.j = pos.j - 1;
+        new_positions.push_back(aux);
     }
 
-	// Caso não esteja, pegar o primeiro valor de 
-	// valid_positions, remove-lo e chamar a funão walk com esse valor
-	pos_t next_position = valid_positions.top();
-	valid_positions.pop();
-	maze[pos.i][pos.j] = '.';
-	//Caso alguma das posições validas seja igual a 's', terminar o programa
-	if(maze[next_position.i][next_position.j] == 's'){
-		maze[next_position.i][next_position.j] = 'o';
-		system("cls");
-		print_maze();
-		cout << "Labirinto Finalizado!\n";
-        return 0;
-	}
-	else{
-		return walk(next_position);
-	}
+    // Se encontrar a saída
+    if (!new_positions.empty() && maze[new_positions[0].i][new_positions[0].j] == 's') {
+        maze[new_positions[0].i][new_positions[0].j] = 'o';
+        clear_console();
+        print_maze();
+        cout << "Labirinto Finalizado!\n";
+        return;
+    }
+
+    // Criar novas threads para explorar caminhos adicionais
+    vector<thread> threads;
+    for (size_t i = 1; i < new_positions.size(); ++i) {
+        threads.emplace_back(walk, new_positions[i]);
+    }
+
+    // Explorar o primeiro caminho com a thread atual
+    if (!new_positions.empty()) {
+        walk(new_positions[0]);
+    }
+
+    // Esperar as threads adicionais terminarem
+    for (auto& t : threads) {
+        t.join();
+    }
 }
 
 int main(int argc, char* argv[])
-{	
-	cout << "teste\n";
-	// carregar o labirinto com o nome do arquivo recebido como argumento (argv[])
-	pos_t initial_pos = load_maze("maze2.txt");
-	
-	print_maze();
-	walk(initial_pos); 
+{
+    // Carregar o labirinto com o nome do arquivo recebido como argumento (argv[])
+    pos_t initial_pos = load_maze("./data/maze5.txt");
 
-	for (int i = 0; i < num_rows; ++i) {
+    print_maze();
+    walk(initial_pos);
+
+    // Liberar a memória alocada
+    for (int i = 0; i < num_rows; ++i) {
         delete[] maze[i];
     }
     delete[] maze;
 
-	return 0;
+    return 0;
 }
